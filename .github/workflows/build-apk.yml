@@ -15,10 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Extract Android project
-        run: |
-          unzip wonderworld_android_app_source.zip
-          echo "Project extracted"
-          find . -maxdepth 3 -type f | head -100
+        run: unzip -o wonderworld_android_app_source.zip
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -27,14 +24,25 @@ jobs:
           java-version: "17"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.9"
 
-      - name: Find and build Android project
+      - name: Build APK
         run: |
-          PROJECT_DIR=$(find . -name gradlew -type f -printf '%h\n' | head -1)
+          cd wonderworld_android_app
+          gradle assembleDebug
 
-          if [ -z "$PROJECT_DIR" ]; then
-            echo "Could not find gradlew"
+      - name: Collect APK
+        run: |
+          mkdir -p collected-apk
+          cp wonderworld_android_app/app/build/outputs/apk/debug/app-debug.apk collected-apk/WonderWorld-Guest-App.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WonderWorld-Guest-App-APK
+          path: collected-apk/WonderWorld-Guest-App.apk            echo "Could not find gradlew"
             exit 1
           fi
 
