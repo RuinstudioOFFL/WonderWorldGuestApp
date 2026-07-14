@@ -1,0 +1,56 @@
+name: Build WonderWorld APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Extract Android project
+        run: |
+          unzip wonderworld_android_app_source.zip
+          echo "Project extracted"
+          find . -maxdepth 3 -type f | head -100
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Find and build Android project
+        run: |
+          PROJECT_DIR=$(find . -name gradlew -type f -printf '%h\n' | head -1)
+
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "Could not find gradlew"
+            exit 1
+          fi
+
+          echo "Android project found at: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Locate APK
+        run: |
+          mkdir -p collected-apk
+          find . -type f -name "*.apk" -exec cp {} collected-apk/ \;
+          ls -la collected-apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WonderWorld-Guest-App-APK
+          path: collected-apk/*.apk
