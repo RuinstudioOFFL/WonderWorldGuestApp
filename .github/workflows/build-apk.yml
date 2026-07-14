@@ -1,4 +1,4 @@
-name: Build WonderWorld APK
+name: Build WonderWorld Deluxe APK
 
 on:
   workflow_dispatch:
@@ -14,32 +14,54 @@ jobs:
       - name: Download repository
         uses: actions/checkout@v4
 
-      - name: Extract Android project
-        run: unzip -o wonderworld_android_app_source.zip
+      - name: Extract deluxe Android project
+        run: |
+          rm -rf wonderworld_android_app_deluxe
+          unzip -o wonderworld_android_app_deluxe_source.zip
+          echo "Project extracted successfully"
+          ls -la wonderworld_android_app_deluxe
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
+          cache-disabled: false
 
-      - name: Build APK
+      - name: Build debug APK
+        working-directory: wonderworld_android_app_deluxe
         run: |
-          cd wonderworld_android_app
-          gradle assembleDebug
+          gradle --no-daemon assembleDebug
 
-      - name: Collect APK
+      - name: Verify APK exists
+        run: |
+          APK_PATH="wonderworld_android_app_deluxe/app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -f "$APK_PATH" ]; then
+            echo "APK was not found at $APK_PATH"
+            find wonderworld_android_app_deluxe -type f -name "*.apk"
+            exit 1
+          fi
+
+          echo "APK found:"
+          ls -lh "$APK_PATH"
+
+      - name: Prepare APK download
         run: |
           mkdir -p collected-apk
-          cp wonderworld_android_app/app/build/outputs/apk/debug/app-debug.apk collected-apk/WonderWorld-Guest-App.apk
+          cp \
+            wonderworld_android_app_deluxe/app/build/outputs/apk/debug/app-debug.apk \
+            collected-apk/WonderWorld-Guest-App-Deluxe.apk
 
-      - name: Upload APK
+      - name: Upload WonderWorld APK
         uses: actions/upload-artifact@v4
         with:
-          name: WonderWorld-Guest-App-APK
-          path: collected-apk/WonderWorld-Guest-App.apk
+          name: WonderWorld-Guest-App-Deluxe-APK
+          path: collected-apk/WonderWorld-Guest-App-Deluxe.apk
+          if-no-files-found: error
+          retention-days: 30
